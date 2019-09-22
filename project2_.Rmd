@@ -1,0 +1,36 @@
+---
+title: "project2_"
+output: html_document
+---
+
+Import dataframe
+```{r}
+gini_db <- read.csv("C:/Users/user/Documents/lorenzo-verstraeten/propulsion_lorenzo/Module_2_Statistics/gini_index.csv")
+```
+
+
+We first try to run an OLS ---> we see zero effect. 
+```{r cars}
+
+st_lm=lm(gini_db$GINI_ ~ gini_db$avexpr, data = gini_db)
+summary(st_lm)
+
+
+
+plot(gini_db$avexpr,gini_db$GINI_, main="GINI vs Institution",
+   xlab="Average protection against expropriation", ylab="GINI index in percentage",xlim=c(3.5, max(gini_db$avexpr, na.rm=T)),    ylim=c(20, max(gini_db$GINI_, na.rm=T)))
+
+abline(st_lm)
+
+text(gini_db$avexpr,gini_db$GINI_, labels=gini_db$shortnam, cex=0.6)
+
+```
+
+To access the causal role of institution on income inequality we use the same instrumentala variable
+We see zero effect
+
+```{r}
+iv_=ivreg(gini_db$GINI_ ~ gini_db$avexpr | gini_db$logem4 , data = gini_db)
+summary(iv_)
+```
+

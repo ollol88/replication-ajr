@@ -1,0 +1,91 @@
+---
+title: "Project_"
+output: html_document
+---
+Read the file in R (the original file is save as a .dta -used in Stata-)
+```{r setup, include=FALSE}
+replication_ajr= read.dta("C:/Users/user/Documents/lorenzo-verstraeten/propulsion_lorenzo/Module_2_Statistics/maketable1.dta", convert.factors=FALSE)
+#be sure to have the "foreign" package and to point at the right directory
+
+View(replication_ajr)
+```
+
+Running OLS and Plot
+
+```{r}
+st_lm=lm(replication_ajr$logpgp95 ~ replication_ajr$avexpr, data = STATA2)
+summary(st_lm)
+
+plot(replication_ajr$avexpr, replication_ajr$logpgp95, main="GDP vs Institution",
+   xlab="Average protection against expropriation", ylab="log(per_capita_GDP_1995)",xlim=c(3.5, max(replication_ajr$avexpr, na.rm=T)),    ylim=c(6, max(replication_ajr$logpgp95, na.rm=T)))
+
+abline(st_lm)
+
+text(replication_ajr$avexpr, replication_ajr$logpgp95, labels=replication_ajr$shortnam, cex=0.6)
+```
+Test the first stage setller mortality vs institutions measure
+
+```{r}
+lm_settle=lm(replication_ajr$avexpr ~ replication_ajr$logem4, data = replication_ajr)
+summary(lm_settle)
+
+
+plot(replication_ajr$logem4, replication_ajr$avexpr, main="Institution vs settler moratlity", 
+     xlab="log(mortality)", ylab="Average protection against expropriation",
+     xlim=c(1, max(replication_ajr$logem4, na.rm=T)), ylim=c(3, max(replication_ajr$avexpr, na.rm=T)))
+
+abline(lm_settle)
+
+text(replication_ajr$logem4, replication_ajr$avexpr, labels=replication_ajr$shortnam, cex=0.6)
+```
+Running the IV regression. Note the change in the estimate. This is the causal effect of institution on GDP
+
+```{r}
+iv_=ivreg(replication_ajr$logpgp95 ~ replication_ajr$avexpr | replication_ajr$logem4 , data = replication_ajr)
+summary(iv_)
+```
+
+
+Playing with bootstrap and residuals (not part of the original paper)
+
+bootstrap the mean for our dependent variable log(GDP in 1995)
+
+```{r , echo=FALSE}
+
+
+calc_mean = function(data, index){
+  mean_x <- mean(replication_ajr$logpgp95[index], na.rm=TRUE) 
+  return(mean_x)
+}
+
+bootobject = boot(replication_ajr$logpgp95, calc_mean, R=10000) #be sure to have the boot pacakage
+bootobject
+boot.ci(bootobject, type="bca") #compute mean confidence intervals
+
+```
+
+
+residuals of the first OLS
+
+```{r}
+plot(st_lm)
+```
+
+We bootstrap the coefficient of the first OLS regression
+
+```{r}
+vec=numeric(1000)
+for (i in 1:1000){
+    #we generate a lot of estimate for beta from random sub-sample and we get a vector with all these.
+    index_beta=sample.int(length(replication_ajr$shortnam), 30)
+    vec[i]=(summary(lm(replication_ajr$logpgp95[index_beta] ~     replication_ajr$avexpr[index_beta]))$coefficient[2])
+}
+
+
+hist(vec)
+mean(vec) #mean of bootstraps
+quantile(vec,0.025) #confidence interval
+quantile(vec,0.975)
+```
+
+
